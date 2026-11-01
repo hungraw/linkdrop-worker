@@ -1,0 +1,17 @@
+name = "linkdrop-worker"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+[[durable_objects.bindings]]
+name = "LINK_EVENTS"
+class_name = "LinkEventsObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LinkEventsObject"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "linkdrop"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
