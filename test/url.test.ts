@@ -18,3 +18,8 @@ test('rejects malformed and non-http URLs', () => {
   assert.equal(cleanHttpUrl('javascript:alert(1)'), null);
   assert.equal(cleanHttpUrl('ftp://example.com/file'), null);
 });
+
+test('rejects URLs with credentials', () => {
+  assert.equal(cleanHttpUrl('https://user:password@example.com/path'), null);
+  assert.equal(cleanHttpUrl('https://user@example.com/path'), null);
+});

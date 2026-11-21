@@ -22,18 +22,22 @@ export async function listLinks(db: D1Database): Promise<Link[]> {
 }
 
 export async function createLink(db: D1Database, url: string): Promise<{ link: Link; created: boolean }> {
-  const recent = await db.prepare(
-    'SELECT id, url, created_at FROM links WHERE url = ? ORDER BY created_at DESC LIMIT 1',
-  ).bind(url).first<LinkRow>();
+  const link = { id: crypto.randomUUID(), url, createdAt: new Date().toISOString() };
+  const cutoff = new Date(Date.now() - 45_000).toISOString();
+  const insert = await db.prepare(
+    'INSERT INTO links (id, url, created_at) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM links WHERE url = ? AND created_at >= ?)',
+  ).bind(link.id, link.url, link.createdAt, url, cutoff).run();
 
-  if (recent && Date.now() - Date.parse(recent.created_at) <= 45_000) {
-    return { link: linkFromRow(recent), created: false };
+  if ((insert.meta.changes ?? 0) > 0) {
+    const row = await db.prepare('SELECT id, url, created_at FROM links WHERE id = ?')
+      .bind(link.id).first<LinkRow>();
+    return { link: linkFromRow(row!), created: true };
   }
 
-  const link = { id: crypto.randomUUID(), url, createdAt: new Date().toISOString() };
-  await db.prepare('INSERT INTO links (id, url, created_at) VALUES (?, ?, ?)')
-    .bind(link.id, link.url, link.createdAt).run();
-  return { link, created: true };
+  const recent = await db.prepare(
+    'SELECT id, url, created_at FROM links WHERE url = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1',
+  ).bind(url, cutoff).first<LinkRow>();
+  return { link: linkFromRow(recent!), created: false };
 }
 
 export async function deleteLink(db: D1Database, id: string): Promise<boolean> {
